@@ -14,14 +14,16 @@
 %outputs will be in metric
 
 %inputs:
-%b = number of blades between 2-4. 5+ MIGHT be possible but research would be needed
+%b = number of blades usually between 2-4. 
 %R = Radius in METERS
 %C = Chord in METERS
-%omega = ANGULAR velocity in rad/s DO NOT ALLOW MAX MACH TO BE > 0,7
+%omega = ANGULAR velocity in rad/s DO NOT ALLOW Max Mach number TO BE > 0.7
+
 %theta0 = collective pitch (angle at beginning of rotor MUST be chosen so no angle is ZERO
+
 %thetaMin = angle at tip LINEAR TWIST ONLY (easier to manufacture)
 %cl_cd_alpha: matrix with alpha in DEGREES in first column, cl in SECOND 
-                        %and cd in third. make ONE MATRIX WITH ALL 3.
+                        %and cd in third. [cl cd alpha]
                                                                           
 
 function [thrust,fanThrust, powerReq, CT, CQ, CT_sigma,disk_loading, maxM] ...
@@ -48,34 +50,16 @@ SpeedOfSound = 340; % m/s
 % rR = r/R non dimensional chord ARRAY OF POINTS
 % cR = c/R  non dimensional chord ARRAY OF POINTS
 % local Mach M = (r/R)*[(omega*R)/SpeedOfSound] ARRAY OF POINTS
-% local twist dtheta ARRAY OF POINTS
+% local twist dtheta array of points
 %  collective pitch =  theta0  note theta0 should be chosen so NEVER < 0
 
 %  cl, cd will have to be inputed
 
-%TEST INPUTS
 
-%b = 2;
-%R = 0.45; % meter
-%R = 1.64; %ft
-%C = 0.1; % meter
-%C = 0.328; %ft
-
-%omega = 550; %rad/s = ~5252RPM (1 RPM = (2pi/60)rad/s)
-
-%theta0 = degtorad(15); % ARBITRARLY chosen for NOW
-
-alphazl = 0; %THIN AIRFOIL FOR NOW
+alphazl = 0; %THIN AIRFOIL
 
 cl = [cl_cd_alpha(:,1) .* ((pi)/180), cl_cd_alpha(:,2)];   %dconverts alpha to radians
 cd = [cl_cd_alpha(:,1) .* ((pi)/180), cl_cd_alpha(:,3)];  % cd 
-
-
-%%%%
-
-% function definition 
-% outputs [thrust, power] 
-
 
 n = 10; % choice of number of blade elements (places to calculate along a blade)
 
@@ -110,17 +94,10 @@ sigma = (b*C)/(pi*R);
 v1_omegar = getinduced_velocity(a,sigma,rR,theta);
 
 
-
-%TODO 6 ---- GETTING SINGLE NUMBER BACK
 alphas = getalpha(theta,v1_omegar);
 
 
-%MUST extract this data from UIUC ---  7
-% cl = get cl
-% cd = get cd
-%get cl and cd ARRAY for given configuration based on M or Re and blade elements
 
-% FOR TEST THIS WAS DONE USING THE TEST NACA 0012 Curve
 %this finds minimun difference between our value for alpha and the one in
 %the cl vs alpha curve
 cLwithAlpha = zeros(10,1);
@@ -132,7 +109,7 @@ for i = 1:n %where n is the number of blade elements at the very top
     
     index = find(alphas(i) < cl(:,1));%matrix where index 1 is first time alpha is bigger
         
-    indexCL = index(1) - 1; %we want the closest SMALLEST Value so we're not overestimating
+    indexCL = index(1) - 1; %we want the closest smallest value so we're not overestimating
     
     %disp(indexCL)
     
@@ -149,7 +126,7 @@ dCT_drR = getRunningThrustLoading(b, rR, cR, cLwithAlpha);
 
 %TODO 9 
 
-CTnoTipLoss = getCTnoTipLoss(dCT_drR, rR); %changed to poly 
+CTnoTipLoss = getCTnoTipLoss(dCT_drR, rR); %changed to polyfit for integration 
 
 %TODO 10
 B = getTip_loss(CTnoTipLoss, b);
@@ -157,10 +134,7 @@ B = getTip_loss(CTnoTipLoss, b);
 
 % 11
 
-%CT =  CTnoTipLoss; %HERE USING ASSUMPTION OF NEGLIGIBLE TIP LOSS FOR FAN
-
 CT = getCTwithTipLoss(CTnoTipLoss, B,dCT_drR, rR,n); %CT For rotor
-
 
 % 12
 
@@ -175,7 +149,6 @@ CQ0 = getProfileTorqueCoefficient(dCQ0_drR, rR); %changed to poly
 dCQi_drR = getRunningInducedTorqueLoading(b,rR,cR,cLwithAlpha, v1_omegar);
 
    
-% x0 will be considered 0.15 for now -- 15
 x0 = 0.15; %x0 is the expected area near the base which will provide negligible lift thus neg cqi
 
 
@@ -202,8 +175,7 @@ CT_sigma = getCT_sigma(CT,b,C,R);
 
 % best linear fit for correction factor 19 (fig 1.34)
 
-linear_powercorrection = 1.02; %assume value its ok (+50% assumed from book) for now huge source of uncertainty
-
+linear_powercorrection = 1.02; %assume value its ok
 
 % 20
 CQ = (CQ0 + CQi + dCQi)*linear_powercorrection;
