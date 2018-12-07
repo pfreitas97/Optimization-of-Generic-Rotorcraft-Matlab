@@ -1,3 +1,4 @@
+format long
 
 
 A = [];
@@ -5,16 +6,22 @@ b = [];
 Aeq = [];
 beq = [];
 
-%Decision variables C theta0 thetaMin
+nVars = 7;
 
-lb = [0.05; deg2rad(0); deg2rad(0)];
-ub = [0.3; deg2rad(20); deg2rad(20)];
+%Decision vars
+% nrot L b, C, theta0, thetaMin, Airfoil
+%int : nrot b airfoil
 
-x0 = [0.1; deg2rad(15); deg2rad(15)];
+lb = [4; 1;  2; 0.05; deg2rad(0); deg2rad(0); 0];
+ub = [8; 1.5; 6 ; 0.3; deg2rad(14); deg2rad(14); 1];
 
-options = optimoptions('fmincon','Display','iter');
+x0 = [6; 1; 0.15; deg2rad(10); deg2rad(10); 0];
+
+options = optimoptions('ga','Display','iter')
+
+[x, fval, exitflag] = ga(@continuousObjective,nVars,A,b,Aeq,beq,lb,ub,@continuousConstraint,[1 3 7],options)
 
 
-[xstar fval exitFlag] = fmincon('continuousObjective',x0,A,b,Aeq,beq,lb,ub,'continuousConstraint',options)
+[thrust, powerReq, CT, CQ, weightAircraft, ThrustEnvelope, SizeConstraint]  = performanceResults(x)
 
 
