@@ -1,29 +1,65 @@
-
 function [g geq] = continuousConstraint(x)
 
+%Decision variables
+% nrot L b, C, theta0, thetaMin, Airfoil
 
-C = x(1);
-theta0 = x(2);
-thetaMin = x(3);
 
-b = 4;
-R = 0.4;
-omega = 600;
-n = 6;
 
-datum = load('NACA0012_cl_cd_alpha.mat');
+%Fixed variables
+R = 0.5;
+omega = 600; %RPM = 4774
 
-cl_cd_alpha = datum.cl_cd_alpha;
+g = 9.8;
+
+%Decision variables
+nrot = x(1);
+L = x(2);
+b = x(3);
+C = x(4);
+theta0 = x(5);
+thetaMin = x(6);
+airfoil = x(7);
+
+
+if airfoil == 0
+    datum = load('NACA0012_cl_cd_alpha.mat'); %Airfoil encoding
+    cl_cd_alpha = datum.cl_cd_alpha;
+    
+end
+
+if airfoil == 1
+    datum = load('NACA0015_cl_cd_alpha.mat');
+    cl_cd_alpha = datum.NACA0015XFLR;
+    
+end
+
+
+
+
 
 [thrust,fanThrust, powerReq, CT, CQ, CT_sigma,disk_loading, maxM] ...
     = rotorDataFromGeometry(b,R,C,omega,theta0,thetaMin,cl_cd_alpha);
 
-w = (500 * 4.448)/(n); %conversion from 500 lb to N divided by n rotors
+wLBS = 300 + 25*nrot + 100*L;
 
-g = 1 - (thrust/w);
+lbs2KG = 0.453592;
+
+w = (wLBS*lbs2KG); %conversion from 500 lb to N divided by n rotors
+
+g1 = 1 - ((nrot*thrust)/(w*g));
+
+%Drone Aircraft Radius
+%Rotor Radius
+
+
+
+g2 = ( (L*L)/(R) )*(cosd(360/nrot) - 1) + 1; 
+
+
+g = [g1; g2];
 
 if nargout > 1
-    geq = 0;
+    geq = [];
 end
 
 end
